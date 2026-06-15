@@ -1,0 +1,7 @@
+# Editor / IDE settings (personal, machine-specific)
+.vscode/
+.idea/
+
+# OS-generated files
+Thumbs.db
+.DS_Store
