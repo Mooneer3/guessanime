@@ -16,10 +16,10 @@ import com.guessanime.backend.repository.GameSessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.text.Normalizer;
 import java.util.Comparator;
 import java.util.List;
+
+import java.time.LocalDate;
 
 @Service
 public class GameSessionService {
@@ -29,16 +29,19 @@ public class GameSessionService {
     private final GameSessionRepository gameSessionRepository;
     private final ChallengeProgressRepository challengeProgressRepository;
     private final DailyGameRepository dailyGameRepository;
+    private final AnswerService answerService;
 
     public GameSessionService(
             GameSessionRepository gameSessionRepository,
             ChallengeProgressRepository challengeProgressRepository,
-            DailyGameRepository dailyGameRepository
+            DailyGameRepository dailyGameRepository,
+            AnswerService answerService
     ) {
         this.gameSessionRepository = gameSessionRepository;
         this.challengeProgressRepository =
                 challengeProgressRepository;
         this.dailyGameRepository = dailyGameRepository;
+        this.answerService = answerService;
     }
 
     @Transactional
@@ -130,8 +133,10 @@ public class GameSessionService {
             );
         }
 
-        boolean correct = normalize(answer)
-                .equals(normalize(challenge.getAnime().getTitle()));
+        boolean correct = answerService.isCorrect(
+                answer,
+                challenge.getAnime()
+        );
 
         if (correct) {
 
@@ -233,10 +238,6 @@ public class GameSessionService {
                 progress.getScore()
         );
 
-        /*
-         * Pour le moment, seul le mode Screenshot
-         * possède des indices disponibles.
-         */
         if (challenge.getMode() == GameMode.SCREENSHOT
                 && !progress.isCompleted()) {
 
@@ -344,23 +345,5 @@ public class GameSessionService {
                 default -> 2000;
             };
         };
-    }
-
-    private String normalize(String value) {
-
-        if (value == null) {
-            return "";
-        }
-
-        String normalized =
-                Normalizer.normalize(
-                        value,
-                        Normalizer.Form.NFD
-                );
-
-        return normalized
-                .replaceAll("\\p{M}", "")
-                .toLowerCase()
-                .replaceAll("[^a-z0-9]", "");
     }
 }

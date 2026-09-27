@@ -33,10 +33,23 @@ public class AnimeController {
         return animeService.createAnime(anime);
     }
 
-    @PostMapping("/{id}/screenshots/import")
-    public List<Screenshot> importScreenshots(@PathVariable Long id) {
+    @PostMapping("/titles/synchronize")
+    public String synchronizeTitles() {
 
-        Anime anime = animeService.getAnimeById(id);
+        int count =
+                animeService.synchronizeTitlesFromAniList();
+
+        return "Synchronisation terminée : "
+                + count
+                + " anime.";
+    }
+
+    @PostMapping("/{id}/screenshots/import")
+    public List<Screenshot> importScreenshots(
+            @PathVariable Long id
+    ) {
+        Anime anime =
+                animeService.getAnimeById(id);
 
         return screenshotService.importScreenshots(anime);
     }

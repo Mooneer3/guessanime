@@ -19,6 +19,10 @@ public class Anime {
 
     private String title;
 
+    private String titleRomaji;
+
+    private String titleNative;
+
     private Integer popularity;
 
     private Integer popularityRank;
@@ -58,6 +62,22 @@ public class Anime {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getTitleRomaji() {
+        return titleRomaji;
+    }
+
+    public void setTitleRomaji(String titleRomaji) {
+        this.titleRomaji = titleRomaji;
+    }
+
+    public String getTitleNative() {
+        return titleNative;
+    }
+
+    public void setTitleNative(String titleNative) {
+        this.titleNative = titleNative;
     }
 
     public Integer getPopularity() {
@@ -113,4 +133,4 @@ public class Anime {
 
         return Difficulty.HARD;
     }
-}   
+}

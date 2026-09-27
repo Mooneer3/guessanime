@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: guessanime-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: guessanime
+      POSTGRES_USER: guessanime
+      POSTGRES_PASSWORD: guessanime
+    ports:
+      - "5432:5432"
+    volumes:
+      - guessanime-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  guessanime-postgres-data:
