@@ -7,8 +7,9 @@ import com.guessanime.backend.entity.DailyGameStatus;
 import com.guessanime.backend.entity.Difficulty;
 import com.guessanime.backend.entity.GameMode;
 import com.guessanime.backend.repository.AnimeRepository;
-import com.guessanime.backend.repository.DailyChallengeRepository;
 import com.guessanime.backend.repository.DailyGameRepository;
+import com.guessanime.backend.repository.GameSessionRepository;
+import com.guessanime.backend.repository.ScreenshotRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,19 +23,26 @@ import java.util.Set;
 @Service
 public class DailyGameService {
 
+    private static final int MINIMUM_SCREENSHOTS = 3;
+
     private final DailyGameRepository dailyGameRepository;
     private final AnimeRepository animeRepository;
+    private final ScreenshotRepository screenshotRepository;
     private final ScreenshotService screenshotService;
+    private final GameSessionRepository gameSessionRepository;
 
     public DailyGameService(
-            DailyGameRepository dailyGameRepository,
-            DailyChallengeRepository dailyChallengeRepository,
-            AnimeRepository animeRepository,
-            ScreenshotService screenshotService
+        DailyGameRepository dailyGameRepository,
+        AnimeRepository animeRepository,
+        ScreenshotRepository screenshotRepository,
+        ScreenshotService screenshotService,
+        GameSessionRepository gameSessionRepository
     ) {
         this.dailyGameRepository = dailyGameRepository;
         this.animeRepository = animeRepository;
+        this.screenshotRepository = screenshotRepository;
         this.screenshotService = screenshotService;
+        this.gameSessionRepository = gameSessionRepository;
     }
 
     @Transactional
@@ -71,13 +79,23 @@ public class DailyGameService {
 
             for (Difficulty difficulty : Difficulty.values()) {
 
-                Anime anime = selectRandomAnime(
+                List<Anime> candidatePool =
                         getPoolForDifficulty(
                                 difficulty,
                                 easyAnimes,
                                 mediumAnimes,
                                 hardAnimes
-                        ),
+                        );
+
+                if (mode == GameMode.SCREENSHOT) {
+                    candidatePool =
+                            filterScreenshotEligibleAnimes(
+                                    candidatePool
+                            );
+                }
+
+                Anime anime = selectRandomAnime(
+                        candidatePool,
                         usedAnimeIds
                 );
 
@@ -114,6 +132,22 @@ public class DailyGameService {
                 ));
     }
 
+    @Transactional
+    public void deleteDailyGame(LocalDate date) {
+
+        DailyGame dailyGame = dailyGameRepository
+                .findByGameDate(date)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Aucun DailyGame pour la date " + date
+                ));
+
+        gameSessionRepository.deleteAll(
+                gameSessionRepository.findByDailyGame(dailyGame)
+        );
+
+        dailyGameRepository.delete(dailyGame);
+    }
+
     private List<Anime> getPoolForDifficulty(
             Difficulty difficulty,
             List<Anime> easyAnimes,
@@ -127,10 +161,30 @@ public class DailyGameService {
         };
     }
 
+    private List<Anime> filterScreenshotEligibleAnimes(
+            List<Anime> pool
+    ) {
+
+        List<Anime> eligibleAnimes = new ArrayList<>();
+
+        for (Anime anime : pool) {
+
+            long screenshotCount =
+                    screenshotRepository.countByAnime(anime);
+
+            if (screenshotCount >= MINIMUM_SCREENSHOTS) {
+                eligibleAnimes.add(anime);
+            }
+        }
+
+        return eligibleAnimes;
+    }
+
     private Anime selectRandomAnime(
             List<Anime> pool,
             Set<Long> usedAnimeIds
     ) {
+
         List<Anime> availableAnimes = new ArrayList<>();
 
         for (Anime anime : pool) {
@@ -160,15 +214,5 @@ public class DailyGameService {
                             + pool.size() + " anime."
             );
         }
-    }
-    @Transactional
-    public void deleteDailyGame(LocalDate date) {
-        DailyGame dailyGame = dailyGameRepository
-                .findByGameDate(date)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Aucun DailyGame pour la date " + date
-                ));
-
-        dailyGameRepository.delete(dailyGame);
     }
 }
